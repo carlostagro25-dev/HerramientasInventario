@@ -411,12 +411,13 @@ tbody tr:active{background:var(--papel-alt);}
     <form onsubmit="handleAddTool(event)">
       <div class="field"><label>Nombre</label><input type="text" id="toolName" required placeholder="Pala"></div>
       <div class="field"><label>Categoría</label>
-        <select id="toolCategory" required>
-          <option value="">Selecciona</option>
+        <input type="text" id="toolCategory" list="toolCategoryList" required placeholder="Elige o escribe una nueva">
+        <datalist id="toolCategoryList">
           <option>Palas y Picos</option><option>Herramientas Menores</option>
           <option>Baritanques</option><option>Equipos de Medición</option>
           <option>Seguridad</option><option>Otros</option>
-        </select>
+        </datalist>
+        <p class="hint">¿No está en la lista? Solo escríbela — se guarda como categoría nueva.</p>
       </div>
       <div class="field"><label>Cantidad</label><input type="number" id="toolQuantity" required min="1" placeholder="5"></div>
       <div class="field"><label>Descripción</label><textarea id="toolDescription" rows="2"></textarea></div>
@@ -434,10 +435,11 @@ tbody tr:active{background:var(--papel-alt);}
     <form onsubmit="handleAddSupply(event)">
       <div class="field"><label>Nombre</label><input type="text" id="supplyName" required placeholder="Guantes de trabajo"></div>
       <div class="field"><label>Categoría</label>
-        <select id="supplyCategory" required>
-          <option value="">Selecciona</option>
+        <input type="text" id="supplyCategory" list="supplyCategoryList" required placeholder="Elige o escribe una nueva">
+        <datalist id="supplyCategoryList">
           <option>Guantes</option><option>Lentes</option><option>Cascos</option><option>Botas</option><option>Otros EPP</option>
-        </select>
+        </datalist>
+        <p class="hint">No todo insumo es EPP — escribe la categoría que necesites (ej. "Oficina", "Limpieza", "Repuestos").</p>
       </div>
       <div class="grid">
         <div class="field"><label>Unidad</label>
@@ -727,7 +729,7 @@ const V = {
 /* ======================================================================
    APP LOGIC
 ====================================================================== */
-const API_URL = 'https://script.google.com/macros/s/AKfycbzQC_Y9H0CAwA6Ymb29zecM0ZIqiJX7pX-nrHi1207w1kWqJOUo_uGCFjvLSgGLM1Dgog/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbw8eikVTz2145FwhJ1X2oqdEi2t5JT4PQQHO7CFwLT9T_XWbJGbtGHG05gjFQDZfba8Ow/exec';
 let currentUser=null, allTools=[], allSupplies=[], activeLoans=[], allAssignments=[];
 let pendingReturnLoanId = null;
 
@@ -865,8 +867,17 @@ async function loadTools(){
       renderTools();
       document.getElementById('loanTool').innerHTML = '<option value="">Selecciona</option>' +
         allTools.filter(t=>t.cantidadDisponible>0).map(t=>`<option value="${t.id}">${t.codigo} — ${t.nombre}</option>`).join('');
+      updateCategoryList('toolCategoryList', allTools);
     }
   }catch(e){}
+}
+function updateCategoryList(datalistId, items){
+  const dl = document.getElementById(datalistId);
+  if(!dl) return;
+  const existentes = new Set(Array.from(dl.querySelectorAll('option')).map(o=>o.value));
+  [...new Set(items.map(i=>i.categoria).filter(Boolean))].forEach(cat=>{
+    if(!existentes.has(cat)){ const o=document.createElement('option'); o.value=cat; dl.appendChild(o); }
+  });
 }
 function stockBadge(disp, total){
   const ratio = total>0 ? disp/total : 0;
@@ -910,6 +921,7 @@ async function loadSupplies(){
       renderSupplies();
       document.getElementById('assignSupply').innerHTML = '<option value="">Selecciona</option>' +
         allSupplies.filter(s=>s.cantidadDisponible>0).map(s=>`<option value="${s.id}">${s.codigo} — ${s.nombre}</option>`).join('');
+      updateCategoryList('supplyCategoryList', allSupplies);
     }
   }catch(e){}
 }
