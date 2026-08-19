@@ -184,6 +184,16 @@ tbody tr:active{background:var(--papel-alt);}
 .skel-row td{padding:14px;}
 .skel-line{height:12px;border-radius:4px;background:linear-gradient(90deg, var(--papel-alt) 25%, var(--linea) 37%, var(--papel-alt) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;}
 
+.row-selectable{cursor:pointer;}
+.row-selectable:hover{background:var(--papel-alt);}
+.row-selectable:active{background:var(--linea);}
+.row-action{color:var(--tinta-muted);font-size:12px;white-space:nowrap;}
+.row-action i{margin-right:4px;color:var(--ambar-dark);}
+.row-action.disabled{color:var(--linea);}
+.row-action.disabled i{color:var(--linea);}
+.hint-row{font-size:11.5px;color:var(--tinta-muted);margin:-8px 0 14px;display:flex;align-items:center;gap:6px;}
+.hint-row i{color:var(--ambar-dark);}
+
 .modal{display:none;position:fixed;inset:0;background:rgba(20,20,15,0.5);z-index:300;align-items:center;justify-content:center;padding:20px;}
 .modal.active{display:flex;animation:fadeIn .2s ease;}
 .modal-box{background:white;border-radius:14px;padding:26px;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:0 30px 70px rgba(0,0,0,0.3);animation:cardRise .35s cubic-bezier(.2,.9,.25,1);}
@@ -295,12 +305,14 @@ tbody tr:active{background:var(--papel-alt);}
           <div class="toolbar-row">
             <div class="search-box"><i class="fas fa-magnifying-glass"></i><input id="toolSearch" placeholder="Buscar por código o nombre…" oninput="renderTools()"></div>
             <button class="btn btn-primary" onclick="openModal('toolModal')"><i class="fas fa-plus"></i> Nueva herramienta</button>
+            <button class="btn btn-petroleo" onclick="openLoanModal()"><i class="fas fa-right-from-bracket"></i> Dar salida</button>
           </div>
+          <div class="hint-row"><i class="fas fa-hand-pointer"></i> Toca una herramienta de la lista para darle salida directamente</div>
 
           <div class="table-card">
             <div class="table-head"><h3>Inventario <span class="count" id="toolsCount"></span></h3></div>
-            <table><thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Total</th><th>Disponible</th></tr></thead>
-              <tbody id="toolsBody"><tr class="skel-row"><td colspan="5"><div class="skel-line"></div></td></tr></tbody>
+            <table><thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Total</th><th>Disponible</th><th></th></tr></thead>
+              <tbody id="toolsBody"><tr class="skel-row"><td colspan="6"><div class="skel-line"></div></td></tr></tbody>
             </table>
           </div>
         </div>
@@ -321,10 +333,11 @@ tbody tr:active{background:var(--papel-alt);}
           </div>
 
           <div class="seg-panel active" id="insumosInvPanel">
+            <div class="hint-row"><i class="fas fa-hand-pointer"></i> Toca un insumo de la lista para asignarlo directamente</div>
             <div class="table-card">
               <div class="table-head"><h3>Inventario de insumos <span class="count" id="suppliesCount"></span></h3></div>
-              <table><thead><tr><th>Código</th><th>Nombre</th><th>Disponible</th><th>Costo</th></tr></thead>
-                <tbody id="suppliesBody"><tr class="skel-row"><td colspan="4"><div class="skel-line"></div></td></tr></tbody>
+              <table><thead><tr><th>Código</th><th>Nombre</th><th>Disponible</th><th>Costo</th><th></th></tr></thead>
+                <tbody id="suppliesBody"><tr class="skel-row"><td colspan="5"><div class="skel-line"></div></td></tr></tbody>
               </table>
             </div>
           </div>
@@ -372,11 +385,19 @@ tbody tr:active{background:var(--papel-alt);}
               </button>
             </div>
           </div>
-          <div class="card">
+          <div class="card" style="margin-bottom:16px;">
             <h3><i class="fas fa-ticket"></i> Vale — original y copia en una hoja</h3>
             <p style="color:var(--tinta-muted);font-size:12.5px;">
-              Cada préstamo o asignación genera automáticamente un PDF con dos mitades: arriba el <strong>ORIGINAL</strong> para archivo, abajo la <strong>COPIA</strong> para quien recibe — con el membrete de Servicios Generales / Agrotendencias y línea de corte al centro.
+              Cada préstamo o asignación genera automáticamente un PDF con dos mitades: arriba el <strong>ORIGINAL</strong> para archivo, abajo la <strong>COPIA</strong> para quien recibe — con el membrete de Servicios Generales / Agrotendencias y línea de corte al centro. Al generarse se abre el diálogo de impresión de una vez; si no lo imprimes, queda guardado aquí abajo para descargarlo cuando quieras.
             </p>
+          </div>
+          <div class="card">
+            <h3><i class="fas fa-receipt"></i> Vales generados en esta sesión</h3>
+            <div class="table-card" style="margin-top:12px;box-shadow:none;">
+              <table><thead><tr><th>Vale</th><th>Detalle</th><th>Fecha</th><th></th></tr></thead>
+                <tbody id="vouchersBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -411,13 +432,12 @@ tbody tr:active{background:var(--papel-alt);}
     <form onsubmit="handleAddTool(event)">
       <div class="field"><label>Nombre</label><input type="text" id="toolName" required placeholder="Pala"></div>
       <div class="field"><label>Categoría</label>
-        <input type="text" id="toolCategory" list="toolCategoryList" required placeholder="Elige o escribe una nueva">
-        <datalist id="toolCategoryList">
+        <select id="toolCategory" required>
+          <option value="">Selecciona</option>
           <option>Palas y Picos</option><option>Herramientas Menores</option>
           <option>Baritanques</option><option>Equipos de Medición</option>
           <option>Seguridad</option><option>Otros</option>
-        </datalist>
-        <p class="hint">¿No está en la lista? Solo escríbela — se guarda como categoría nueva.</p>
+        </select>
       </div>
       <div class="field"><label>Cantidad</label><input type="number" id="toolQuantity" required min="1" placeholder="5"></div>
       <div class="field"><label>Descripción</label><textarea id="toolDescription" rows="2"></textarea></div>
@@ -435,11 +455,10 @@ tbody tr:active{background:var(--papel-alt);}
     <form onsubmit="handleAddSupply(event)">
       <div class="field"><label>Nombre</label><input type="text" id="supplyName" required placeholder="Guantes de trabajo"></div>
       <div class="field"><label>Categoría</label>
-        <input type="text" id="supplyCategory" list="supplyCategoryList" required placeholder="Elige o escribe una nueva">
-        <datalist id="supplyCategoryList">
+        <select id="supplyCategory" required>
+          <option value="">Selecciona</option>
           <option>Guantes</option><option>Lentes</option><option>Cascos</option><option>Botas</option><option>Otros EPP</option>
-        </datalist>
-        <p class="hint">No todo insumo es EPP — escribe la categoría que necesites (ej. "Oficina", "Limpieza", "Repuestos").</p>
+        </select>
       </div>
       <div class="grid">
         <div class="field"><label>Unidad</label>
@@ -729,9 +748,61 @@ const V = {
 /* ======================================================================
    APP LOGIC
 ====================================================================== */
-const API_URL = 'https://script.google.com/macros/s/AKfycbw8eikVTz2145FwhJ1X2oqdEi2t5JT4PQQHO7CFwLT9T_XWbJGbtGHG05gjFQDZfba8Ow/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzQC_Y9H0CAwA6Ymb29zecM0ZIqiJX7pX-nrHi1207w1kWqJOUo_uGCFjvLSgGLM1Dgog/exec';
 let currentUser=null, allTools=[], allSupplies=[], activeLoans=[], allAssignments=[];
 let pendingReturnLoanId = null;
+let generatedVouchers = [];
+
+/* ============ VALES: imprimir de una vez o guardar en la app ============ */
+function printOrKeepVoucher(doc, filename, detalle){
+  const blobUrl = doc.output('bloburl');
+  const voucher = { id: Date.now()+'_'+Math.random().toString(36).slice(2), filename, blobUrl, detalle, fecha:new Date() };
+  generatedVouchers.unshift(voucher);
+  renderVouchers();
+  openPrintFrame(blobUrl);
+  toast('Vale listo — se abrió para imprimir. Si no imprimes, queda guardado en Reportes.');
+  return voucher;
+}
+function openPrintFrame(blobUrl){
+  let frame = document.getElementById('printFrame');
+  if(!frame){
+    frame = document.createElement('iframe');
+    frame.id = 'printFrame';
+    frame.style.position = 'fixed'; frame.style.right = '0'; frame.style.bottom = '0';
+    frame.style.width = '0'; frame.style.height = '0'; frame.style.border = '0';
+    document.body.appendChild(frame);
+  }
+  frame.onload = () => {
+    try{ frame.contentWindow.focus(); frame.contentWindow.print(); }
+    catch(e){ window.open(blobUrl, '_blank'); }
+  };
+  frame.src = blobUrl;
+}
+function renderVouchers(){
+  const body = document.getElementById('vouchersBody');
+  if(!body) return;
+  body.innerHTML = generatedVouchers.length ? generatedVouchers.map(v=>`
+    <tr>
+      <td class="mono">${v.filename}</td>
+      <td>${v.detalle||'—'}</td>
+      <td>${v.fecha.toLocaleString()}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-sm btn-outline" onclick="printVoucherAgain('${v.id}')" title="Imprimir"><i class="fas fa-print"></i></button>
+        <button class="btn btn-sm btn-ghost" onclick="downloadVoucher('${v.id}')" title="Descargar"><i class="fas fa-download"></i></button>
+      </td>
+    </tr>`).join('') : emptyState('fa-receipt','Aún no se han generado vales en esta sesión',4);
+}
+function printVoucherAgain(id){
+  const v = generatedVouchers.find(x=>x.id===id);
+  if(v) openPrintFrame(v.blobUrl);
+}
+function downloadVoucher(id){
+  const v = generatedVouchers.find(x=>x.id===id);
+  if(!v) return;
+  const a = document.createElement('a');
+  a.href = v.blobUrl; a.download = v.filename;
+  document.body.appendChild(a); a.click(); a.remove();
+}
 
 function setLoading(btn, loading){
   if(!btn) return;
@@ -768,6 +839,7 @@ async function handleLogin(e){
       document.getElementById('userBadge').textContent = currentUser.role.toUpperCase();
       if(currentUser.role!=='admin') document.getElementById('usuariosMenu').style.display='none';
       loadDashboard();
+      renderVouchers();
     } else {
       showInlineError('loginError', data.message || 'Usuario o contraseña incorrectos');
     }
@@ -867,17 +939,8 @@ async function loadTools(){
       renderTools();
       document.getElementById('loanTool').innerHTML = '<option value="">Selecciona</option>' +
         allTools.filter(t=>t.cantidadDisponible>0).map(t=>`<option value="${t.id}">${t.codigo} — ${t.nombre}</option>`).join('');
-      updateCategoryList('toolCategoryList', allTools);
     }
   }catch(e){}
-}
-function updateCategoryList(datalistId, items){
-  const dl = document.getElementById(datalistId);
-  if(!dl) return;
-  const existentes = new Set(Array.from(dl.querySelectorAll('option')).map(o=>o.value));
-  [...new Set(items.map(i=>i.categoria).filter(Boolean))].forEach(cat=>{
-    if(!existentes.has(cat)){ const o=document.createElement('option'); o.value=cat; dl.appendChild(o); }
-  });
 }
 function stockBadge(disp, total){
   const ratio = total>0 ? disp/total : 0;
@@ -888,10 +951,19 @@ function renderTools(){
   const q = (document.getElementById('toolSearch').value||'').toLowerCase();
   const list = allTools.filter(t => t.nombre.toLowerCase().includes(q) || t.codigo.toLowerCase().includes(q));
   document.getElementById('toolsCount').textContent = `(${list.length})`;
-  document.getElementById('toolsBody').innerHTML = list.length ? list.map(t=>`
-    <tr><td class="mono">${t.codigo}</td><td>${t.nombre}</td><td>${t.categoria||'—'}</td><td>${t.cantidadTotal}</td>
-    <td>${stockBadge(t.cantidadDisponible, t.cantidadTotal)}</td></tr>`).join('')
-    : emptyState('fa-screwdriver-wrench', q ? 'Sin resultados para tu búsqueda' : 'Aún no hay herramientas registradas', 5);
+  document.getElementById('toolsBody').innerHTML = list.length ? list.map(t=>{
+    const disp = t.cantidadDisponible>0;
+    return `<tr class="${disp?'row-selectable':''}" ${disp?`onclick="handleToolRowClick(${t.id})"`:''}>
+    <td class="mono">${t.codigo}</td><td>${t.nombre}</td><td>${t.categoria||'—'}</td><td>${t.cantidadTotal}</td>
+    <td>${stockBadge(t.cantidadDisponible, t.cantidadTotal)}</td>
+    <td class="row-action ${disp?'':'disabled'}"><i class="fas fa-right-from-bracket"></i>${disp?'Dar salida':'Sin stock'}</td></tr>`;
+  }).join('')
+    : emptyState('fa-screwdriver-wrench', q ? 'Sin resultados para tu búsqueda' : 'Aún no hay herramientas registradas', 6);
+}
+function handleToolRowClick(id){
+  const tool = allTools.find(t=>t.id===id);
+  if(!tool || tool.cantidadDisponible<=0){ toast('No hay unidades disponibles de esta herramienta','err'); return; }
+  openLoanModal(id);
 }
 async function handleAddTool(e){
   e.preventDefault();
@@ -921,7 +993,6 @@ async function loadSupplies(){
       renderSupplies();
       document.getElementById('assignSupply').innerHTML = '<option value="">Selecciona</option>' +
         allSupplies.filter(s=>s.cantidadDisponible>0).map(s=>`<option value="${s.id}">${s.codigo} — ${s.nombre}</option>`).join('');
-      updateCategoryList('supplyCategoryList', allSupplies);
     }
   }catch(e){}
 }
@@ -929,10 +1000,19 @@ function renderSupplies(){
   const q = (document.getElementById('supplySearch').value||'').toLowerCase();
   const list = allSupplies.filter(s => s.nombre.toLowerCase().includes(q) || s.codigo.toLowerCase().includes(q));
   document.getElementById('suppliesCount').textContent = `(${list.length})`;
-  document.getElementById('suppliesBody').innerHTML = list.length ? list.map(s=>`
-    <tr><td class="mono">${s.codigo}</td><td>${s.nombre}</td>
-    <td>${stockBadge(s.cantidadDisponible, s.cantidadTotal)}</td><td>$${Number(s.costoUnitario).toFixed(2)}</td></tr>`).join('')
-    : emptyState('fa-shield-halved', q ? 'Sin resultados para tu búsqueda' : 'Aún no hay insumos registrados', 4);
+  document.getElementById('suppliesBody').innerHTML = list.length ? list.map(s=>{
+    const disp = s.cantidadDisponible>0;
+    return `<tr class="${disp?'row-selectable':''}" ${disp?`onclick="handleSupplyRowClick(${s.id})"`:''}>
+    <td class="mono">${s.codigo}</td><td>${s.nombre}</td>
+    <td>${stockBadge(s.cantidadDisponible, s.cantidadTotal)}</td><td>$${Number(s.costoUnitario).toFixed(2)}</td>
+    <td class="row-action ${disp?'':'disabled'}"><i class="fas fa-hand-holding-heart"></i>${disp?'Asignar':'Sin stock'}</td></tr>`;
+  }).join('')
+    : emptyState('fa-shield-halved', q ? 'Sin resultados para tu búsqueda' : 'Aún no hay insumos registrados', 5);
+}
+function handleSupplyRowClick(id){
+  const supply = allSupplies.find(s=>s.id===id);
+  if(!supply || supply.cantidadDisponible<=0){ toast('No hay unidades disponibles de este insumo','err'); return; }
+  openAssignModal(id);
 }
 async function handleAddSupply(e){
   e.preventDefault();
@@ -951,9 +1031,10 @@ async function handleAddSupply(e){
   }catch(err){ toast('Error de conexión','err'); }
   setLoading(btn,false);
 }
-function openAssignModal(){
+function openAssignModal(preselectId){
   if(!allSupplies.length){ toast('Primero registra un insumo','err'); return; }
   openModal('assignModal');
+  if(preselectId!=null){ document.getElementById('assignSupply').value = preselectId; }
 }
 async function handleAssignSupply(e){
   e.preventDefault();
@@ -976,7 +1057,7 @@ async function handleAssignSupply(e){
         codigo:supply.codigo, cantidad:assignQuantity.value, unidad:supply.unidad,
         departamento:assignDept.value, fechaAsignacion:new Date().toLocaleDateString()
       });
-      doc.save(`Vale_Insumo_${assignName.value}_${Date.now()}.pdf`);
+      printOrKeepVoucher(doc, `Vale_Insumo_${assignName.value}_${Date.now()}.pdf`, `${supply.nombre} — ${assignName.value} ${assignLastName.value}`);
       e.target.reset(); closeModal('assignModal'); loadSupplies(); loadAssignments();
     } else toast(data.message||'No se pudo asignar','err');
   }catch(err){ toast('Error de conexión','err'); }
@@ -997,9 +1078,10 @@ async function loadAssignments(){
 }
 
 /* ============ PRÉSTAMOS ============ */
-function openLoanModal(){
+function openLoanModal(preselectId){
   if(!allTools.filter(t=>t.cantidadDisponible>0).length && allTools.length){ toast('No hay herramientas disponibles ahora mismo','err'); return; }
   openModal('loanModal');
+  if(preselectId!=null){ document.getElementById('loanTool').value = preselectId; }
 }
 async function handleAddLoan(e){
   e.preventDefault();
@@ -1020,7 +1102,7 @@ async function handleAddLoan(e){
         nombre:loanName.value, apellido:loanLastName.value, herramienta:tool.nombre, codigo:tool.codigo,
         dias:loanDays.value, fechaSalida:new Date().toLocaleDateString(), fechaDevolucion:fechaDev.toLocaleDateString()
       });
-      doc.save(`Vale_Herramienta_${loanName.value}_${Date.now()}.pdf`);
+      printOrKeepVoucher(doc, `Vale_Herramienta_${loanName.value}_${Date.now()}.pdf`, `${tool.nombre} — ${loanName.value} ${loanLastName.value}`);
       e.target.reset(); closeModal('loanModal');
       loadTools(); loadActiveLoans();
     } else toast(data.message||'No se pudo registrar','err');
